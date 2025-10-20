@@ -1,0 +1,39 @@
+apiVersion: forklift.konveyor.io/v1beta1
+kind: Plan
+metadata:
+  name: windows-migration-plan
+  namespace: openshift-mtv
+  annotations:
+    populatorLabels: 'True'
+spec:
+  pvcNameTemplateUseGenerateName: true
+  warm: false
+  migrateSharedDisks: true
+  targetNamespace: uat-infra-tools
+  useCompatibilityMode: true
+  skipGuestConversion: false
+  provider:
+    destination:
+      apiVersion: forklift.konveyor.io/v1beta1
+      kind: Provider
+      name: host
+      namespace: openshift-mtv
+    source:
+      apiVersion: forklift.konveyor.io/v1beta1
+      kind: Provider
+      name: vmware-2025
+      namespace: openshift-mtv
+  vms:
+    - id: '10'
+      name: windows-template
+  map:
+    network:
+      apiVersion: forklift.konveyor.io/v1beta1
+      kind: NetworkMap
+      name: default-network-mapping
+      namespace: openshift-mtv
+    storage:
+      apiVersion: forklift.konveyor.io/v1beta1
+      kind: StorageMap
+      name: default-storage-mapping
+      namespace: openshift-mtv

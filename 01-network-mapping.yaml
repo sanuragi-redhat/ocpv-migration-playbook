@@ -1,0 +1,25 @@
+apiVersion: forklift.konveyor.io/v1beta1
+kind: NetworkMap
+metadata:
+  name: default-network-mapping
+  namespace: openshift-mtv
+spec:
+  map:
+    - destination:
+        name: localnet-nad
+        namespace: default
+        type: multus
+      source:
+        id: HaNetwork-VM Network
+        name: VM Network
+  provider:
+    destination:
+      apiVersion: forklift.konveyor.io/v1beta1
+      kind: Provider
+      name: host
+      namespace: openshift-mtv
+    source:
+      apiVersion: forklift.konveyor.io/v1beta1
+      kind: Provider
+      name: vmware-2025
+      namespace: openshift-mtv

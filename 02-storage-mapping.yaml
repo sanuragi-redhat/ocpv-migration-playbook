@@ -1,0 +1,22 @@
+apiVersion: forklift.konveyor.io/v1beta1
+kind: StorageMap
+metadata:
+  name: default-storage-mapping
+  namespace: openshift-mtv
+spec:
+  map:
+    - destination:
+        storageClass: nfs
+      source:
+        id: 68f298f7-b9018cd1-5cdb-525400e02772
+  provider:
+    destination:
+      apiVersion: forklift.konveyor.io/v1beta1
+      kind: Provider
+      name: host
+      namespace: openshift-mtv
+    source:
+      apiVersion: forklift.konveyor.io/v1beta1
+      kind: Provider
+      name: vmware-2025
+      namespace: openshift-mtv
