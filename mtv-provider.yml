@@ -1,0 +1,14 @@
+apiVersion: forklift.konveyor.io/v1beta1
+kind: Provider
+metadata:
+  name: vmware.openshift
+  namespace: openshift-mtv
+spec:
+  secret:
+    name: vmware.blackmagiclinux.com-f9tbw
+    namespace: openshift-mtv
+  settings:
+    sdkEndpoint: esxi
+    vddkInitImage: 'docker.io/darwikdev11/vddk:latest'
+  type: vsphere
+  url: 'https://192.168.0.253/sdk'
