@@ -1,25 +1,46 @@
-apiVersion: forklift.konveyor.io/v1beta1
-kind: NetworkMap
-metadata:
-  name: default-network-mapping
-  namespace: openshift-mtv
-spec:
-  map:
-    - destination:
-        name: localnet-nad
-        namespace: default
-        type: multus
-      source:
-        id: HaNetwork-VM Network
-        name: VM Network
-  provider:
-    destination:
-      apiVersion: forklift.konveyor.io/v1beta1
-      kind: Provider
-      name: host
-      namespace: openshift-mtv
-    source:
-      apiVersion: forklift.konveyor.io/v1beta1
-      kind: Provider
-      name: vmware-2025
-      namespace: openshift-mtv
+---
+- name: Deploy MTV NetworkMap Configuration
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    network_map_name: "default-network-mapping"
+    target_namespace: "openshift-mtv"
+
+  tasks:
+    - name: Ensure forklift NetworkMap resource exists
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: forklift.konveyor.io/v1beta1
+          kind: NetworkMap
+          metadata:
+            name: "{{ network_map_name }}"
+            namespace: "{{ target_namespace }}"
+          spec:
+            map:
+              - destination:
+                  name: ocp-network
+                  namespace: default
+                  type: multus
+                source:
+                  id: "HaNetwork-VM Nework"
+                  name: "VM Nework"
+            provider:
+              destination:
+                apiVersion: forklift.konveyor.io/v1beta1
+                kind: Provider
+                name: host
+                namespace: "{{ target_namespace }}"
+              source:
+                apiVersion: forklift.konveyor.io/v1beta1
+                kind: Provider
+                name: vmware.blackmagiclinux.com
+                namespace: "{{ target_namespace }}"
+      register: networkmap_result
+
+    - name: Output NetworkMap application status
+      ansible.builtin.debug:
+        msg: "NetworkMap {{ network_map_name }} applied successfully in {{ target_namespace }}."
+      when: networkmap_result.changed or not networkmap_result.failed
