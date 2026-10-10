@@ -1,68 +1,91 @@
 ---
-- name: Apply Forklift Migration Plan to OpenShift
+- name: Deploy Forklift Plan and Trigger Migration
   hosts: localhost
-  gather_facts: no
+  connection: local
+  gather_facts: false
+
   vars:
-    kubeconfig_path: "/root/ocp4/auth/kubeconfig"
+    plan_name: "ipa-server-2026"
+    target_namespace: "openshift-mtv"
 
   tasks:
-    - name: Apply Forklift Plan
-      k8s:
-        kubeconfig: "{{ kubeconfig_path }}"
+    - name: Apply Forklift Migration Plan
+      kubernetes.core.k8s:
         state: present
-        definition: |
+        definition:
           apiVersion: forklift.konveyor.io/v1beta1
           kind: Plan
           metadata:
-            name: rhel-8-migration
-            namespace: openshift-mtv
+            name: "{{ plan_name }}"
+            namespace: "{{ target_namespace }}"
             annotations:
               populatorLabels: 'True'
           spec:
             pvcNameTemplateUseGenerateName: true
             warm: false
             migrateSharedDisks: true
-            targetNamespace: uat-infra-tools
+            targetNamespace: rhce-consulting-vms
+            xfsCompatibility: false
             useCompatibilityMode: true
+            deleteVmOnFailMigration: true
             skipGuestConversion: false
+            preserveStaticIPs: true
+            type: cold
+            runPreflightInspection: true
+            targetPowerState: auto
             provider:
               destination:
                 apiVersion: forklift.konveyor.io/v1beta1
                 kind: Provider
                 name: host
-                namespace: openshift-mtv
+                namespace: "{{ target_namespace }}"
               source:
                 apiVersion: forklift.konveyor.io/v1beta1
                 kind: Provider
-                name: vmware-2025
-                namespace: openshift-mtv
+                name: vmware.blackmagiclinux.com
+                namespace: "{{ target_namespace }}"
             vms:
-              - id: '10'
-                name: rhel-8-template
+              - id: '144'
+                name: ipa-admin
             map:
               network:
                 apiVersion: forklift.konveyor.io/v1beta1
                 kind: NetworkMap
-                name: default-network-mapping
-                namespace: openshift-mtv
+                name: ipa-server-2026-default-network-mapping
+                namespace: "{{ target_namespace }}"
               storage:
                 apiVersion: forklift.konveyor.io/v1beta1
                 kind: StorageMap
-                name: default-storage-mapping
-                namespace: openshift-mtv
-    - shell: sleep 30
-    - name: Start migration using the Forklift Plan
-      k8s:
-        kubeconfig: "{{ kubeconfig_path }}"
+                name: ipa-server-2026-default-storage-mapping
+                namespace: "{{ target_namespace }}"
+
+    - name: Wait for Plan VDDK and Preflight conditions to be Ready
+      kubernetes.core.k8s_info:
+        api_version: forklift.konveyor.io/v1beta1
+        kind: Plan
+        name: "{{ plan_name }}"
+        namespace: "{{ target_namespace }}"
+      register: plan_status
+      until: >
+        plan_status.resources[0].status.conditions | selectattr('type', 'equalto', 'Ready') | selectattr('status', 'equalto', 'True') | list | length > 0
+      retries: 30
+      delay: 10
+
+    - name: Launch Migration Execution
+      kubernetes.core.k8s:
         state: present
-        definition: |
+        definition:
           apiVersion: forklift.konveyor.io/v1beta1
           kind: Migration
           metadata:
-            generateName: centos-migration-
-            namespace: openshift-mtv
+            generateName: "ipa-migration-"
+            namespace: "{{ target_namespace }}"
           spec:
             plan:
-              name: redhat-migration-plan
-              namespace: openshift-mtv
+              name: "{{ plan_name }}"
+              namespace: "{{ target_namespace }}"
+      register: migration_result
 
+    - name: Display Migration Details
+      ansible.builtin.debug:
+        msg: "Migration resource created: {{ migration_result.result.metadata.name }}"
