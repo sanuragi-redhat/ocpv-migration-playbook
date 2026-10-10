@@ -51,12 +51,12 @@
               network:
                 apiVersion: forklift.konveyor.io/v1beta1
                 kind: NetworkMap
-                name: ipa-server-2026-default-network-mapping
+                name: default-network-mapping
                 namespace: "{{ target_namespace }}"
               storage:
                 apiVersion: forklift.konveyor.io/v1beta1
                 kind: StorageMap
-                name: ipa-server-2026-default-storage-mapping
+                name: default-storage-mapping
                 namespace: "{{ target_namespace }}"
 
     - name: Wait for Plan VDDK and Preflight conditions to be Ready
