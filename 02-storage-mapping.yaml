@@ -1,22 +1,43 @@
-apiVersion: forklift.konveyor.io/v1beta1
-kind: StorageMap
-metadata:
-  name: default-storage-mapping
-  namespace: openshift-mtv
-spec:
-  map:
-    - destination:
-        storageClass: nfs
-      source:
-        id: 68f298f7-b9018cd1-5cdb-525400e02772
-  provider:
-    destination:
-      apiVersion: forklift.konveyor.io/v1beta1
-      kind: Provider
-      name: host
-      namespace: openshift-mtv
-    source:
-      apiVersion: forklift.konveyor.io/v1beta1
-      kind: Provider
-      name: vmware-2025
-      namespace: openshift-mtv
+---
+- name: Deploy MTV StorageMap Configuration
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    storage_map_name: "default-storage-mapping"
+    target_namespace: "openshift-mtv"
+
+  tasks:
+    - name: Ensure forklift StorageMap resource exists
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: forklift.konveyor.io/v1beta1
+          kind: StorageMap
+          metadata:
+            name: "{{ storage_map_name }}"
+            namespace: "{{ target_namespace }}"
+          spec:
+            map:
+              - destination:
+                  storageClass: nfs-provisioner
+                source:
+                  id: "6a74e2e1-362d4bef-41fe-1c98ec27f374"
+            provider:
+              destination:
+                apiVersion: forklift.konveyor.io/v1beta1
+                kind: Provider
+                name: host
+                namespace: "{{ target_namespace }}"
+              source:
+                apiVersion: forklift.konveyor.io/v1beta1
+                kind: Provider
+                name: vmware.blackmagiclinux.com
+                namespace: "{{ target_namespace }}"
+      register: storagemap_result
+
+    - name: Output StorageMap application status
+      ansible.builtin.debug:
+        msg: "StorageMap {{ storage_map_name }} applied successfully in {{ target_namespace }}."
+      when: storagemap_result.changed or not storagemap_result.failed
